@@ -191,6 +191,33 @@ subprojects {
     //Required for building on Travis' container-based infrastructure to not be killed with
     //'exit code 137' - https://github.com/travis-ci/travis-ci/issues/5582
     jvmArgs '-Xmx512m'
+
+    /*
+     * If the gradle option -Pjfr is set during test execution, JFR will be activated for that execution.
+     */
+    if (project.extensions.extraProperties.has("jfr")) {
+      if (rootProject.ext.javaVersion < 11) {
+        throw new IllegalArgumentException("JFR requires Java >= 11.")
+      }
+      def jfrDir = "build/jfr"
+      def jfrConfigFile = rootProject.file("config/jfr_config.jfc")
+
+      jvmArgs(
+        //https://docs.oracle.com/en/java/javase/17/docs/specs/man/java.html
+        // Search for -XX:FlightRecorderOptions and -XX:StartFlightRecording
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:+DebugNonSafepoints",
+        "-XX:FlightRecorderOptions=stackdepth=1024",
+        "-XX:StartFlightRecording=name=TestExec_$taskName,disk=true,maxsize=1g,dumponexit=true,filename=$jfrDir/${taskName}_Exec.jfr,settings=${jfrConfigFile.absolutePath}"
+      )
+      //We do not want to be UP-TO-DATE, if we are doing a Java Flight Recording. We always want a new recording.
+      outputs.upToDateWhen { false }
+
+      doFirst {
+        //Ensure that the jfr folder exists, otherwise the Java process start will fail.
+        project.file(jfrDir).mkdirs()
+      }
+    }
   }
 
   tasks.register("allDependencyInsight", DependencyInsightReportTask) {}
