@@ -37,6 +37,10 @@ import static java.util.Arrays.asList;
  * @author Peter Niederwieser
  */
 public abstract class GroovyRuntimeUtil {
+  public static final String SET = "set";
+  public static final String GET = "get";
+  public static final String IS = "is";
+
   public static Object[] EMPTY_ARGUMENTS = new Object[0];
 
   public static boolean isTruthy(Object obj) {
@@ -115,10 +119,10 @@ public abstract class GroovyRuntimeUtil {
     if (!parameterTypes.isEmpty()) return null;
     if (returnType == void.class) return null; // Void.class is allowed
 
-    if (methodName.startsWith("get"))
+    if (methodName.startsWith(GET))
       return getPropertyName(methodName, 3);
 
-    if (methodName.startsWith("is")
+    if (methodName.startsWith(IS)
         && returnType == boolean.class) // Boolean.class is not allowed
       return getPropertyName(methodName, 2);
 

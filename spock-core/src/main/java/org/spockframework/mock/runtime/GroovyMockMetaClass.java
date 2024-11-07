@@ -25,6 +25,9 @@ import java.util.*;
 import groovy.lang.*;
 
 import static java.util.Arrays.asList;
+import static org.spockframework.runtime.GroovyRuntimeUtil.GET;
+import static org.spockframework.runtime.GroovyRuntimeUtil.IS;
+import static org.spockframework.runtime.GroovyRuntimeUtil.SET;
 
 public class GroovyMockMetaClass extends DelegatingMetaClass implements SpecificationAttachable {
   private final IMockConfiguration configuration;
@@ -53,17 +56,17 @@ public class GroovyMockMetaClass extends DelegatingMetaClass implements Specific
 
   @Override
   public Object getProperty(Object target, String property) {
-    String methodName = GroovyRuntimeUtil.propertyToMethodName("is", property);
+    String methodName = GroovyRuntimeUtil.propertyToMethodName(IS, property);
     MetaMethod metaMethod = delegate.getMetaMethod(methodName, GroovyRuntimeUtil.EMPTY_ARGUMENTS);
     if (metaMethod == null || metaMethod.getReturnType() != boolean.class) {
-      methodName = GroovyRuntimeUtil.propertyToMethodName("get", property);
+      methodName = GroovyRuntimeUtil.propertyToMethodName(GET, property);
     }
     return invokeMethod(target, methodName, GroovyRuntimeUtil.EMPTY_ARGUMENTS);
   }
 
   @Override
   public void setProperty(Object target, String property, Object newValue) {
-    String methodName = GroovyRuntimeUtil.propertyToMethodName("set", property);
+    String methodName = GroovyRuntimeUtil.propertyToMethodName(SET, property);
     invokeMethod(target, methodName, new Object[] {newValue});
   }
 
@@ -121,8 +124,7 @@ public class GroovyMockMetaClass extends DelegatingMetaClass implements Specific
 
   private IMockInvocation createMockInvocation(MetaMethod metaMethod, Object target,
       String methodName, Object[] arguments, boolean isStatic) {
-    IMockObject mockObject = new MockObject(configuration.getName(), configuration.getExactType(), target,
-        configuration.isVerified(), configuration.isGlobal(), configuration.getDefaultResponse(), specification, this);
+    IMockObject mockObject = new MockObject(configuration, target, specification, this);
     IMockMethod mockMethod;
     if (metaMethod != null) {
       List<Type> parameterTypes = asList(metaMethod.getNativeParameterTypes());

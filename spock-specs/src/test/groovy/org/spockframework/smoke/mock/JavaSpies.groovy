@@ -202,9 +202,16 @@ class JavaSpies extends Specification {
     person.phoneNumber == "6789"
   }
 
+  @Issue("https://github.com/spockframework/spock/issues/2039")
   def "cannot spy final methods with byteBuddy"() {
     FinalMethodPerson person = Spy(mockMaker: MockMakers.byteBuddy)
+
+    when:
     person.phoneNumber >> 6789
+
+    then:
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'getPhoneNumber' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
 
     expect:
     person.phoneNumber == "12345"
@@ -214,10 +221,11 @@ class JavaSpies extends Specification {
     FinalMethodPerson person = Spy()
 
     when:
-    person.phoneNumber
+    person.phoneNumber >> 6789
 
     then:
-    0 * person.phoneNumber
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'getPhoneNumber' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
   }
 
   def "cannot spy globally"() {

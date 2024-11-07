@@ -14,10 +14,28 @@
 
 package org.spockframework.mock;
 
+import org.spockframework.mock.runtime.IMockInteractionValidation;
+import org.spockframework.util.Beta;
+import org.spockframework.util.Nullable;
+
 /**
- * Marker-like interface implemented by all mock objects that allows
- * {@link MockUtil} to detect mock objects. Not intended for direct use.
+ * MockObject interface implemented by some {@link spock.mock.MockMakers} that allows the {@link org.spockframework.mock.runtime.MockMakerRegistry}
+ * to detect mock objects.
+ *
+ * <p>Not intended for direct use.
  */
 public interface ISpockMockObject {
+
   IMockObject $spock_get();
+
+  /**
+   * @return the {@link IMockInteractionValidation} used to verify {@link IMockInteraction}
+   * @see IMockInteractionValidation
+   * @since 2.4
+   */
+  @Nullable
+  @Beta
+  default IMockInteractionValidation $spock_mockInteractionValidation() {
+    return null;
+  }
 }

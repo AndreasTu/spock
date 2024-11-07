@@ -16,6 +16,8 @@
 
 package org.spockframework.smoke.mock
 
+import org.spockframework.mock.IMockObject
+import org.spockframework.mock.ISpockMockObject
 import spock.lang.Specification
 
 class MockDefaultResponses extends Specification {
@@ -70,6 +72,16 @@ class MockDefaultResponses extends Specification {
     cmock.getLong().getClass() == Long.class
     cmock.getFloat().getClass() == Float.class
     cmock.getDouble().getClass() == Double.class
+  }
+
+  def "default impl of ISpockMockObject.spock_mockInteractionValidation"() {
+    given:
+    def obj = new ISpockMockObject() {
+      @Override
+      IMockObject $spock_get() { return null }
+    }
+    expect:
+    obj.$spock_mockInteractionValidation() == null
   }
 
   interface IMockable {

@@ -160,20 +160,84 @@ class JavaStubs extends Specification {
     person.phoneNumber == "6789"
   }
 
+  @Issue("https://github.com/spockframework/spock/issues/2039")
   def "cannot stub final methods with byteBuddy"() {
+    given:
     FinalMethodPerson person = Stub(mockMaker: MockMakers.byteBuddy)
+
+    when:
+    person.getPhoneNumber() >> 6789
+
+    then:
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'getPhoneNumber' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
+
+    expect:
+    person.getPhoneNumber() == "12345"
+  }
+
+  @Issue("https://github.com/spockframework/spock/issues/2039")
+  def "cannot stub final methods with byteBuddy without error message when one overload is non final"() {
+    given:
+    FinalMethodPerson person = Stub(mockMaker: MockMakers.byteBuddy)
+
+    person.finalAndNonFinalOverload() >> "B"
+
+    expect:
+    person.finalAndNonFinalOverload() == "final"
+  }
+
+  @Issue("https://github.com/spockframework/spock/issues/2039")
+  def "non final method overload shall be mockable"() {
+    given:
+    FinalMethodPerson person = Stub(mockMaker: MockMakers.byteBuddy)
+
+    person.finalAndNonFinalOverload("A") >> "B"
+
+    expect:
+    person.finalAndNonFinalOverload("A") == "B"
+  }
+
+  def "cannot stub final method as property with byteBuddy"() {
+    given:
+    FinalMethodPerson person = Stub(mockMaker: MockMakers.byteBuddy)
+
+    when:
     person.phoneNumber >> 6789
+
+    then:
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'getPhoneNumber' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
 
     expect:
     person.phoneNumber == "12345"
   }
 
-  def "cannot stub final methods without specifying mockMaker"() {
-    FinalMethodPerson person = Stub()
-    person.phoneNumber >> 6789
+  def "cannot stub final is getter as property with byteBuddy"() {
+    given:
+    FinalMethodPerson person = Stub(mockMaker: MockMakers.byteBuddy)
+
+    when:
+    person.finalPerson >> false
+
+    then:
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'isFinalPerson' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
 
     expect:
-    person.phoneNumber == "12345"
+    person.finalPerson
+  }
+
+  def "cannot stub final methods without specifying mockMaker"() {
+    given:
+    FinalMethodPerson person = Stub()
+
+    when:
+    person.getPhoneNumber() >> 6789
+
+    then:
+    def ex = thrown(InvalidSpecException)
+    ex.message == "The final method 'getPhoneNumber' can't be mocked by the byte-buddy mock maker. Please use another mock maker supporting final methods."
   }
 
   def "cannot stub globally"() {
@@ -208,11 +272,24 @@ class JavaStubs extends Specification {
     List<String> children
   }
 
+  @SuppressWarnings('GrMethodMayBeStatic')
   static final class FinalPerson extends Person {
     String getPhoneNumber() { "12345" }
   }
 
+  @SuppressWarnings('GrMethodMayBeStatic')
   static class FinalMethodPerson extends Person {
+
     final String getPhoneNumber() { "12345" }
+
+    final boolean isFinalPerson() { return true }
+
+    final String finalAndNonFinalOverload() {
+      return "final"
+    }
+
+    String finalAndNonFinalOverload(String arg) {
+      return arg
+    }
   }
 }

@@ -33,6 +33,9 @@ import org.objectweb.asm.Opcodes;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.spockframework.compiler.AstUtil.createDirectMethodCall;
+import static org.spockframework.runtime.GroovyRuntimeUtil.GET;
+import static org.spockframework.runtime.GroovyRuntimeUtil.propertyToMethodName;
+import static org.spockframework.runtime.GroovyRuntimeUtil.SET;
 
 /**
  * A Spec visitor responsible for most of the rewriting of a Spec's AST.
@@ -135,7 +138,7 @@ public class SpecRewriter extends AbstractSpecVisitor implements IRewriteResourc
   }
 
   private void createFinalFieldGetter(Field field) {
-    String getterName = "get" + MetaClassHelper.capitalize(field.getName());
+    String getterName = propertyToMethodName(GET, field.getName());
     MethodNode getter = spec.getAst().getMethod(getterName, Parameter.EMPTY_ARRAY);
     if (getter != null) {
       errorReporter.error(field.getAst(),
@@ -158,7 +161,7 @@ public class SpecRewriter extends AbstractSpecVisitor implements IRewriteResourc
   }
 
   private void createSharedFieldSetter(Field field) {
-    String setterName = "set" + MetaClassHelper.capitalize(field.getName());
+    String setterName = propertyToMethodName(SET, field.getName());
     Parameter[] params = new Parameter[] { new Parameter(field.getAst().getType(), "$spock_value") };
     MethodNode setter = spec.getAst().getMethod(setterName, params);
     if (setter != null) {

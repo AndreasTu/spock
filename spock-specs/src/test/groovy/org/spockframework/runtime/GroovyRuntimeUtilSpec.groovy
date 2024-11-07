@@ -15,7 +15,7 @@
 package org.spockframework.runtime
 
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
-import spock.lang.*
+import spock.lang.Specification
 
 class GroovyRuntimeUtilSpec extends Specification {
   def "getterMethodToPropertyName"() {
@@ -39,6 +39,7 @@ class GroovyRuntimeUtilSpec extends Specification {
     "get"             | Integer    | null
     "is"              | boolean    | null
     "foo"             | String     | null
+    "isfoo"           | String     | null
 
     "setFoo"          | void       | null
   }

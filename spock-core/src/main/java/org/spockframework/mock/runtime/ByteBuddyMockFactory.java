@@ -22,6 +22,7 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.TypeCache;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.modifier.MethodManifestation;
 import net.bytebuddy.description.modifier.SynchronizationState;
 import net.bytebuddy.description.modifier.SyntheticState;
 import net.bytebuddy.description.modifier.Visibility;
@@ -31,6 +32,7 @@ import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.implementation.FieldAccessor;
+import net.bytebuddy.implementation.FixedValue;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.Morph;
 import org.codehaus.groovy.runtime.callsite.AbstractCallSite;
@@ -45,6 +47,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static net.bytebuddy.matcher.ElementMatchers.none;
+import static org.spockframework.mock.runtime.BaseMockInterceptor.MOCK_INTERACTION_VALIDATION_METHOD;
 
 class ByteBuddyMockFactory {
   /**
@@ -136,6 +139,10 @@ class ByteBuddyMockFactory {
           .method(m -> !isGroovyMOPMethod(type, m))
           .intercept(mockInterceptor())
           .transform(mockTransformer())
+          .method(m -> m.represents(MOCK_INTERACTION_VALIDATION_METHOD))
+          // Implement the $spock_mockInteractionValidation() method which returns the static field below, so we have a validation instance for every mock class
+          .intercept(FixedValue.reference(new ByteBuddyMockInteractionValidation(), MOCK_INTERACTION_VALIDATION_METHOD.getName()))
+          .transform(validateMockInteractionTransformer())
           .implement(ByteBuddyInterceptorAdapter.InterceptorAccess.class)
           .intercept(FieldAccessor.ofField("$spock_interceptor"))
           .defineField("$spock_interceptor", IProxyBasedMockInterceptor.class, Visibility.PRIVATE, SyntheticState.SYNTHETIC)
@@ -147,6 +154,10 @@ class ByteBuddyMockFactory {
     Object proxy = MockInstantiator.instantiate(type, enhancedType, settings.getConstructorArgs(), settings.isUseObjenesis());
     ((ByteBuddyInterceptorAdapter.InterceptorAccess) proxy).$spock_set(settings.getMockInterceptor());
     return proxy;
+  }
+
+  private static Transformer<MethodDescription> validateMockInteractionTransformer() {
+    return Transformer.ForMethod.withModifiers(SynchronizationState.PLAIN, Visibility.PUBLIC, MethodManifestation.FINAL);
   }
 
   private static Transformer<MethodDescription> mockTransformer() {

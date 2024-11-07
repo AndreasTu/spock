@@ -1,5 +1,7 @@
 package org.spockframework.mock.runtime;
 
+import org.spockframework.mock.IMockObject;
+import org.spockframework.mock.ISpockMockObject;
 import org.spockframework.runtime.GroovyRuntimeUtil;
 
 import java.lang.reflect.Method;
@@ -8,8 +10,13 @@ import java.util.Objects;
 
 import groovy.lang.*;
 import org.jetbrains.annotations.Nullable;
+import org.spockframework.util.ReflectionUtil;
+
+import static java.util.Objects.requireNonNull;
 
 public abstract class BaseMockInterceptor implements IProxyBasedMockInterceptor {
+  static final Method MOCK_INTERACTION_VALIDATION_METHOD = requireNonNull(ReflectionUtil.getMethodByName(ISpockMockObject.class, "$spock_mockInteractionValidation"));
+
   private MetaClass mockMetaClass;
 
   BaseMockInterceptor(MetaClass mockMetaClass) {
@@ -39,11 +46,11 @@ public abstract class BaseMockInterceptor implements IProxyBasedMockInterceptor 
       MetaClass metaClass = target.getMetaClass();
       //First try the isXXX before getXXX, because this is the expected behavior, if it is boolean property.
       MetaMethod booleanVariant = metaClass
-        .getMetaMethod(GroovyRuntimeUtil.propertyToMethodName("is", propertyName), GroovyRuntimeUtil.EMPTY_ARGUMENTS);
+        .getMetaMethod(GroovyRuntimeUtil.propertyToMethodName(GroovyRuntimeUtil.IS, propertyName), GroovyRuntimeUtil.EMPTY_ARGUMENTS);
       if (booleanVariant != null && booleanVariant.getReturnType() == boolean.class) {
         methodName = booleanVariant.getName();
       } else {
-        methodName = GroovyRuntimeUtil.propertyToMethodName("get", propertyName);
+        methodName = GroovyRuntimeUtil.propertyToMethodName(GroovyRuntimeUtil.GET, propertyName);
       }
     }
     return methodName;
@@ -51,5 +58,12 @@ public abstract class BaseMockInterceptor implements IProxyBasedMockInterceptor 
 
   protected boolean isMethod(Method method, String name, Class<?>... parameterTypes) {
     return method.getName().equals(name) && Arrays.equals(method.getParameterTypes(), parameterTypes);
+  }
+
+  public static Object handleSpockMockInterface(Method method, IMockObject mockObject) {
+    if (method.getName().equals(MOCK_INTERACTION_VALIDATION_METHOD.getName())) {
+      return null; //This should be handled in the corresponding MockMakers.
+    }
+    return mockObject;
   }
 }

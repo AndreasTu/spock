@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import groovy.lang.*;
 
 import static java.util.Arrays.asList;
+import static org.spockframework.runtime.GroovyRuntimeUtil.SET;
 
 public class JavaMockInterceptor extends BaseMockInterceptor {
   private final IMockConfiguration mockConfiguration;
@@ -37,11 +38,10 @@ public class JavaMockInterceptor extends BaseMockInterceptor {
 
   @Override
   public Object intercept(Object target, Method method, Object[] arguments, IResponseGenerator realMethodInvoker) {
-    IMockObject mockObject = new MockObject(mockConfiguration.getName(), mockConfiguration.getExactType(),
-      target, mockConfiguration.isVerified(), false, mockConfiguration.getDefaultResponse(), specification, this);
+    IMockObject mockObject = new MockObject(mockConfiguration, target, specification, this);
 
     if (method.getDeclaringClass() == ISpockMockObject.class) {
-      return mockObject;
+      return handleSpockMockInterface(method, mockObject);
     }
 
     // here no instances of org.codehaus.groovy.runtime.wrappers.Wrapper subclasses
@@ -64,7 +64,7 @@ public class JavaMockInterceptor extends BaseMockInterceptor {
           // HACK: for some reason, runtime dispatches direct property access on mock classes via ScriptBytecodeAdapter
           // delegate to the corresponding setter method
           // for abstract groovy classes and interfaces it uses InvokerHelper
-          String methodName = GroovyRuntimeUtil.propertyToMethodName("set", (String)args[0]);
+          String methodName = GroovyRuntimeUtil.propertyToMethodName(SET, (String) args[0]);
           return GroovyRuntimeUtil.invokeMethod(target, methodName, GroovyRuntimeUtil.asArgumentArray(args[1]));
         }
       }
