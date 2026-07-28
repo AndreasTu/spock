@@ -264,7 +264,24 @@ class GroovySpiesThatAreGlobal extends Specification {
     then:
     def ex = thrown(MissingPropertyException)
     ex.message.contains(" NON_EXISTING_FIELD ")
-    def suppressed = ex.getSuppressed()[0].cause
+  }
+
+  @PendingFeatureIf(value = { GroovyRuntimeUtil.MAJOR_VERSION >= 6 },
+    reason = "Groovy 6 reconstructs the MissingPropertyException at the call site (ScriptBytecodeAdapter.unwrap " +
+      "rebuilds the internal MissingPropertyExceptionNoStack from name+type), discarding the suppressed getter " +
+      "MissingMethodException that Spock attaches. Kept as a pending feature so we notice if a future Groovy " +
+      "version restores the suppressed chain.")
+  def "Non-existing property miss through global spy carries the getter attempt as suppressed exception"() {
+    given:
+    GroovySpy(Enclosing.Super, global: true)
+
+    when:
+    Enclosing.Super.NON_EXISTING_FIELD
+
+    then:
+    def ex = thrown(MissingPropertyException)
+    ex.suppressed.length == 1
+    def suppressed = ex.suppressed[0].cause
     suppressed instanceof MissingMethodException
     suppressed.message.contains("getNON_EXISTING_FIELD")
   }
@@ -285,7 +302,22 @@ class GroovySpiesThatAreGlobal extends Specification {
     then:
     def ex = thrown(MissingPropertyException)
     ex.message.contains(" NON_EXISTING_FIELD ")
-    def suppressed = ex.getSuppressed()[0].cause
+  }
+
+  @PendingFeatureIf(value = { GroovyRuntimeUtil.MAJOR_VERSION >= 6 },
+    reason = "See the getter case above: Groovy 6 discards the suppressed exception during call-site unwrap. " +
+      "Kept as a pending feature so we notice if a future Groovy version restores the suppressed chain.")
+  def "Non-existing property setter miss through global spy carries the setter attempt as suppressed exception"() {
+    given:
+    GroovySpy(Enclosing.Super, global: true)
+
+    when:
+    Enclosing.Super.NON_EXISTING_FIELD = ""
+
+    then:
+    def ex = thrown(MissingPropertyException)
+    ex.suppressed.length == 1
+    def suppressed = ex.suppressed[0].cause
     suppressed instanceof MissingMethodException
     suppressed.message.contains("setNON_EXISTING_FIELD")
   }
